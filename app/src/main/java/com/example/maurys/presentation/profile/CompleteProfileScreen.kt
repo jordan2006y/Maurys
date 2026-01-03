@@ -1,81 +1,150 @@
 package com.example.maurys.presentation.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import com.example.maurys.presentation.components.GlassCard // <--- IMPORTANTE
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.maurys.presentation.components.GlassCard
 import com.example.maurys.ui.theme.*
 
 @Composable
-fun CompleteProfileScreen(
-    onContinue: (String) -> Unit
-) {
+fun CompleteProfileScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    Box(
+    // Lanzador para abrir galería (Solo imágenes)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> selectedImageUri = uri }
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(colors = listOf(MainBlack, MainBlue.copy(alpha = 0.2f), MainBlack))
-            ),
-        contentAlignment = Alignment.Center
+            .background(SalonBackground)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Text(
-                "Configuración",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MainWhite,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 32.dp).align(Alignment.CenterHorizontally)
-            )
+        Spacer(modifier = Modifier.height(40.dp))
 
-            GlassCard {
-                Text("¿Cómo se llama tu estética?", color = MainWhite, style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "Crea tu Perfil",
+            style = MaterialTheme.typography.headlineMedium,
+            color = TextWhite,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Para personalizar tu salón",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextGray
+        )
 
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nombre del Negocio") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MainBlue,
-                        unfocusedBorderColor = GlassBorder,
-                        focusedTextColor = MainWhite,
-                        unfocusedTextColor = MainWhite,
-                        focusedLabelColor = MainBlue,
-                        unfocusedLabelColor = TextHint,
-                        cursorColor = MainBlue,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // --- SELECTOR DE IMAGEN ---
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(140.dp)
+                .border(2.dp, BeautyPink, CircleShape) // Borde Neón
+                .padding(4.dp)
+                .clip(CircleShape)
+                .background(SalonSurface)
+                .clickable {
+                    // Abrir galería
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+        ) {
+            if (selectedImageUri != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(selectedImageUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Button(
-                    onClick = { onContinue(name) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MainBlue, disabledContainerColor = MainBlue.copy(alpha = 0.3f)),
-                    enabled = name.isNotBlank()
-                ) {
-                    Text("Continuar", fontWeight = FontWeight.Bold, color = MainWhite)
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.AddAPhoto,
+                        contentDescription = null,
+                        tint = BeautyPink,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text("Foto", color = TextGray, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // --- FORMULARIO EN CRISTAL ---
+        GlassCard(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre del Salón / Estilista") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = BeautyPink) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BeautyPink,
+                    unfocusedBorderColor = TextGray,
+                    focusedTextColor = TextWhite,
+                    unfocusedTextColor = TextWhite,
+                    focusedLabelColor = BeautyPink,
+                    unfocusedLabelColor = TextGray
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = {
+                // Aquí guardarías en Firebase (Storage + Firestore)
+                // Por ahora navegamos al Home
+                navController.navigate("home") {
+                    popUpTo("initial") { inclusive = true }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = BeautyPink),
+            shape = RoundedCornerShape(16.dp),
+            enabled = name.isNotEmpty() // Solo habilita si hay nombre
+        ) {
+            Text("Guardar y Entrar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }

@@ -15,42 +15,81 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
-fun NavigationWrapper(navHostController: NavHostController, auth: FirebaseAuth) {
+fun NavigationWrapper(
+    navHostController: NavHostController,
+    auth: FirebaseAuth
+) {
     val firestore = FirebaseFirestore.getInstance()
 
-    NavHost(navController = navHostController, startDestination = "initial") {
+    // Lógica de inicio: Si hay usuario, al Home. Si no, al Initial.
+    val startDestination = if (auth.currentUser != null) "home" else "initial"
 
+    NavHost(
+        navController = navHostController,
+        startDestination = startDestination
+    ) {
+
+        // 1. Pantalla Inicial (Bienvenida)
         composable("initial") {
-            InitialScreen(navigateToLogin = { navHostController.navigate("login") })
+            InitialScreen(
+                navigateToLogin = { navHostController.navigate("login") } //
+            )
         }
 
+        // 2. Login (Google / Correo)
         composable("login") {
-            LoginScreen(auth = auth, navigateToHome = {
-                // Al loguearse, vamos a completar perfil
-                navHostController.navigate("complete_profile") { popUpTo("initial") { inclusive = true } }
-            })
+            LoginScreen(
+                auth = auth,
+                navigateToHome = {
+                    // AQUÍ ESTÁ LA CLAVE: Al loguearse, no vamos al home,
+                    // vamos a configurar el perfil primero.
+                    navHostController.navigate("complete_profile") {
+                        // Borramos 'initial' y 'login' del historial para no volver atrás
+                        popUpTo("initial") { inclusive = true }
+                    }
+                }
+            )
         }
 
+        // 3. Completar Perfil (Nombre del Negocio)
         composable("complete_profile") {
-            CompleteProfileScreen(onContinue = { name ->
-                navHostController.navigate("security_pin/$name")
-            })
+            CompleteProfileScreen(
+                onContinue = { name ->
+                    // Pasamos el nombre a la siguiente pantalla (PIN)
+                    // Usamos una ruta segura
+                    navHostController.navigate("security_pin/$name")
+                }
+            )
         }
 
+        // 4. Configurar PIN
         composable(
             route = "security_pin/{name}",
             arguments = listOf(navArgument("name") { type = NavType.StringType })
         ) { backStackEntry ->
-            val name = backStackEntry.arguments?.getString("name") ?: ""
-            PinScreen(auth, firestore, name, onSavedSuccess = {
-                navHostController.navigate("home") { popUpTo("login") { inclusive = true } }
-            })
+            // Recuperamos el nombre, si viene vacío ponemos uno por defecto
+            val name = backStackEntry.arguments?.getString("name") ?: "Mi Negocio"
+
+            PinScreen(
+                auth = auth,
+                firestore = firestore,
+                nameRecibido = name,
+                onSavedSuccess = {
+                    // Cuando se guarda el PIN y el Usuario en Firestore:
+                    // Vamos al HOME y borramos todo el historial anterior.
+                    navHostController.navigate("home") {
+                        popUpTo(0) { inclusive = true } // Borra TODO el historial
+                    }
+                }
+            )
         }
 
+        // 5. Pantalla Principal
         composable("home") {
-            // Pasamos el navController para que pueda navegar al POS
-            HomeScreen(auth = auth, navController = navHostController)
-
+            HomeScreen(
+                auth = auth,
+                navController = navHostController // Pasamos el controller por si el Home necesita navegar
+            )
         }
     }
 }

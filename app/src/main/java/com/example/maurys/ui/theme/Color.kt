@@ -1,25 +1,20 @@
+// Archivo: app/src/main/java/com/example/maurys/ui/theme/Color.kt
 package com.example.maurys.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta Principal (AgendatePe Style)
-val MainBlue = Color(0xFF1E30F0)    // El azul característico
-val MainBlack = Color(0xFF121212)
-val MainWhite = Color(0xFFFFFFFF)
-val MainGray = Color(0xFFF5F5F5)
+// --- FONDO Y SUPERFICIES (Base Oscura Elegante) ---
+val SalonBackground = Color(0xFF000000)      // Negro Puro (OLED)
+val SalonSurface = Color(0xFF1A1A1D)         // Gris Carbón muy oscuro (Tarjetas)
+val SalonSurfaceLight = Color(0xFF2D2D30)    // Un poco más claro para bordes/detalles
 
-// Textos
-val TextBlack = Color(0xFF1A1C1E)
-val TextGray = Color(0xFF757575)
+// --- COLORES DE ACENTO (La identidad del Salón) ---
+val BeautyPink = Color(0xFFFF2E63)           // Rosa Neón (Acción Principal / Marca)
+val BeautyPurple = Color(0xFF9D00FF)         // Púrpura Eléctrico (Detalles estéticos)
+val MoneyGreen = Color(0xFF00E676)           // Verde Dinero (Ingresos/Éxito)
+val AlertOrange = Color(0xFFFF9100)          // Naranja (Avisos/Pendientes)
 
-// --- MODO OSCURO TIPO INSTAGRAM ---
-val DarkBackground = Color(0xFF000000) // Negro Puro para el fondo
-val DarkSurface = Color(0xFF121212)    // Gris muy oscuro para tarjetas/inputs
-
-// Colores Adicionales
-val Crema = Color(0xFF00C4B4) // Ese tono turquesa/teal secundario
-
-// Colores para el Efecto Cristal (Glass)
-val GlassBackground = Color(0xFF1A1A1A).copy(alpha = 0.4f) // Fondo semitransparente
-val GlassBorder = Color(0xFFFFFFFF).copy(alpha = 0.15f)    // Borde fino blanco sutil
-val TextHint = Color(0xFFAAAAAA)
+// --- TEXTOS ---
+val TextWhite = Color(0xFFFFFFFF)
+val TextGray = Color(0xFF9E9E9E)
+val TextGrayLight = Color(0xFFCDCDCD)

@@ -1,152 +1,223 @@
 package com.example.maurys.presentation.security
 
-import android.util.Log
-import android.widget.Toast
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.maurys.presentation.components.GlassCard
 import com.example.maurys.ui.theme.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun PinScreen(
+    onPinSuccess: () -> Unit,
     auth: FirebaseAuth,
     firestore: FirebaseFirestore,
-    nameRecibido: String,
-    onSavedSuccess: () -> Unit
+    nameRecibido: String
 ) {
-    var pin by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    var pinInput by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) } // Estado de error
 
-    Box(
+    // --- CONFIGURACIÓN ---
+    val maxPinLength = 6
+    val correctPin = "123456" // (OJO: En producción esto debería venir de tus Preferencias guardadas)
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Animación de sacudida (Shake) para el error
+    val offsetX = remember { Animatable(0f) }
+
+    // Función para vibrar
+    fun vibrateError() {
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vibrator.vibrate(50)
+        }
+    }
+
+    // Efecto: Verificar PIN automáticamente
+    LaunchedEffect(pinInput) {
+        if (pinInput.length == maxPinLength) {
+            if (pinInput == correctPin) {
+                isError = false
+                onPinSuccess()
+            } else {
+                // PIN INCORRECTO
+                isError = true
+                vibrateError()
+
+                // Animación de Shake
+                launch {
+                    offsetX.animateTo(
+                        targetValue = 0f,
+                        animationSpec = keyframes {
+                            durationMillis = 400
+                            0f at 0
+                            (-20f) at 50
+                            20f at 100
+                            (-10f) at 150
+                            10f at 200
+                            0f at 400
+                        }
+                    )
+                }
+
+                // Esperar un momento para que el usuario vea el error rojo antes de borrar
+                delay(1000)
+                pinInput = ""
+                isError = false
+            }
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(MainBlue.copy(alpha = 0.25f), MainBlack),
-                    radius = 900f
-                )
-            ),
-        contentAlignment = Alignment.Center
+            .background(SalonBackground)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            GlassCard {
-                Text(
-                    "Seguridad",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MainWhite,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Crea un PIN de 6 dígitos",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextHint,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+        // Icono (Cambia a Rojo si hay error)
+        Icon(
+            imageVector = if (isError) Icons.Default.Lock else Icons.Default.Fingerprint,
+            contentDescription = null,
+            tint = if (isError) BeautyPink else MoneyGreen, // Rojo/Rosa si error, Verde si normal
+            modifier = Modifier
+                .size(60.dp)
+                .offset(x = offsetX.value.dp) // Aplicar sacudida
+        )
 
-                Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-                // Input de PIN
-                OutlinedTextField(
-                    value = pin,
-                    onValueChange = { newValue ->
-                        if (newValue.length <= 6 && newValue.all { it.isDigit() }) {
-                            pin = newValue
+        Text(
+            text = if (isError) "PIN Incorrecto" else "Bienvenido",
+            style = MaterialTheme.typography.titleMedium,
+            color = if (isError) BeautyPink else TextGray
+        )
+        Text(
+            text = "Ingresa tu PIN",
+            style = MaterialTheme.typography.headlineMedium,
+            color = TextWhite,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // --- INDICADORES DE PIN (Puntos) ---
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.offset(x = offsetX.value.dp) // Sacudir también los puntos
+        ) {
+            repeat(maxPinLength) { index ->
+                val isFilled = index < pinInput.length
+                // Si hay error, todos se ponen rojos/rosas
+                val color = when {
+                    isError -> BeautyPink
+                    isFilled -> MoneyGreen // Verde cuando escribes bien
+                    else -> SalonSurfaceLight
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(60.dp))
+
+        // --- TECLADO NUMÉRICO ---
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            val rows = listOf(
+                listOf("1", "2", "3"),
+                listOf("4", "5", "6"),
+                listOf("7", "8", "9")
+            )
+
+            for (row in rows) {
+                Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                    for (num in row) {
+                        PinButton(num) {
+                            if (pinInput.length < maxPinLength && !isError) pinInput += num
                         }
-                    },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    singleLine = true,
-                    modifier = Modifier.width(220.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    textStyle = TextStyle(
-                        textAlign = TextAlign.Center,
-                        color = MainWhite,
-                        fontSize = 32.sp,
-                        letterSpacing = 8.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MainBlue,
-                        unfocusedBorderColor = GlassBorder,
-                        cursorColor = MainBlue,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        errorContainerColor = Color.Transparent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                if (isLoading) {
-                    CircularProgressIndicator(color = MainBlue)
-                } else {
-                    Button(
-                        onClick = {
-                            isLoading = true
-                            val userId = auth.currentUser?.uid
-                            val userEmail = auth.currentUser?.email ?: ""
-
-                            if (userId != null) {
-                                val userData = hashMapOf(
-                                    "id" to userId,
-                                    "name" to nameRecibido,
-                                    "email" to userEmail,
-                                    "pin" to pin,
-                                    "role" to "admin",
-                                    "createdAt" to System.currentTimeMillis()
-                                )
-
-                                firestore.collection("users").document(userId)
-                                    .set(userData)
-                                    .addOnSuccessListener {
-                                        Log.d("PinScreen", "Usuario guardado con éxito")
-                                        isLoading = false
-                                        onSavedSuccess()
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("PinScreen", "Error al guardar: ${e.message}")
-                                        isLoading = false
-                                        // Mostramos el error exacto en pantalla
-                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                                    }
-                            } else {
-                                isLoading = false
-                                Toast.makeText(context, "Error: Sesión no válida", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MainBlue,
-                            disabledContainerColor = MainBlue.copy(alpha = 0.3f)
-                        ),
-                        enabled = pin.length == 6
-                    ) {
-                        Text("Finalizar Configuración", fontWeight = FontWeight.Bold, color = MainWhite)
                     }
                 }
             }
+
+            // Última fila (0 y Borrar)
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                Spacer(modifier = Modifier.size(75.dp)) // Espacio vacío
+
+                PinButton("0") {
+                    if (pinInput.length < maxPinLength && !isError) pinInput += "0"
+                }
+
+                // Botón Borrar
+                Box(
+                    modifier = Modifier
+                        .size(75.dp)
+                        .clickable {
+                            if (pinInput.isNotEmpty() && !isError) pinInput = pinInput.dropLast(1)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Backspace,
+                        contentDescription = "Borrar",
+                        tint = TextGray,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+fun PinButton(number: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(75.dp)
+            .clip(CircleShape)
+            .background(SalonSurface)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = number,
+            color = TextWhite,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
