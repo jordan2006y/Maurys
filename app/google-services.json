@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "837470663548",
+    "project_id": "maurys-97999",
+    "storage_bucket": "maurys-97999.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:837470663548:android:f62a4514f46b149c9aaaf9",
+        "android_client_info": {
+          "package_name": "com.example.maurys"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "837470663548-1fr3fsfot6aq7ickp82983qd8e0a3dkq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.maurys",
+            "certificate_hash": "7b00002c710138dc9e4ec48c34a9c6b3ab73e6bc"
+          }
+        },
+        {
+          "client_id": "837470663548-snqtdki4ifqfnq0kfh4d7g925o9r5bi3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc93qmN1WWO6kypzpmaoqXBAVUNzVc2PQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "837470663548-snqtdki4ifqfnq0kfh4d7g925o9r5bi3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
